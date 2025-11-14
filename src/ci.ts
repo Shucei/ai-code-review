@@ -5,10 +5,8 @@ import { logger } from "./utils/logger";
 async function main() {
   logger.info("正在以 CI 模式启动 AI 代码审查...");
 
-  // 1. 验证配置
   try {
     validateConfig();
-    logger.info("配置验证成功。");
   } catch (error) {
     logger.error("配置验证失败。", { error });
     process.exit(1);
