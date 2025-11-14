@@ -29,15 +29,15 @@ export function validateConfig(): void {
   const errors: string[] = [];
 
   if (!config.gitlabUrl) {
-    errors.push("GITLAB_URL is required");
+    errors.push("GITLAB_URL 是必需的");
   }
 
   if (!config.gitlabToken) {
-    errors.push("GITLAB_TOKEN is required");
+    errors.push("GITLAB_TOKEN 是必需的");
   }
 
   if (!config.aiApiKey) {
-    errors.push("AI_API_KEY is required");
+    errors.push("AI_API_KEY 是必需的");
   }
 
   if (errors.length > 0) {
