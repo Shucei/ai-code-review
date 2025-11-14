@@ -4,7 +4,7 @@ import { Config } from "../types";
 
 dotenv.config();
 
-const GITLAB_URL = process.env.CI_SERVER_URL || "https://gitlab.com";
+const GITLAB_URL = process.env.CI_SERVER_URL || "";
 const GITLAB_TOKEN = process.env.GITLAB_TOKEN || "";
 const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET;
 const AI_API_KEY = process.env.AI_API_KEY || "";

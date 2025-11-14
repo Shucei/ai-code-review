@@ -46,6 +46,4 @@ async function main() {
   }
 }
 
-// 简单测试一下
-
 main();
