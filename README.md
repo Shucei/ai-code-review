@@ -4,181 +4,113 @@
 
 ## ✨ 特性
 
-- 🤖 **AI 驱动**: 使用 OpenAI GPT-4o 进行智能代码审查
-- 🔄 **自动触发**: 支持 GitLab Webhook，自动审查 MR 的创建和更新
-- 💬 **智能评论**: 自动在 GitLab MR 中添加审查意见和改进建议
-- 📊 **详细报告**: 提供问题统计和分类（错误、警告、建议）
-- 🎯 **精准定位**: 支持行内评论，精确指出问题代码位置
+- [object Object]驱动\*\*: 使用 OpenAI GPT-4o 或 DeepSeek 进行智能代码审查
+- 🔄 **自动触发**: 通过 GitLab CI/CD 自动审查 MR 的创建和更新
+- 💬 **智能评论**: 自动在 GitLab MR 中添加审查意见和改进建议 -[object Object]告**: 提供问题统计和分类（错误、警告、建议） -[object Object]定位**: 支持行内评论，精确指出问题代码位置
+- 🚀 **零部署**: 无需部署服务器，直接在 GitLab CI/CD 中运行
 
-## 📦 安装
+## 📦 快速开始
 
-### 环境要求
+### 1. 将项目添加到你的 GitLab 仓库
 
-- Node.js >= 16.9.0
-- pnpm >= 8.0.0（推荐）或 npm
+你可以选择以下两种方式之一：
 
-### 克隆项目
+**方式 A: 作为独立项目（推荐用于多项目共享）**
 
-```bash
-git clone <your-repo-url>
-cd ai-code-review
-```
+将此项目作为独立的 GitLab 项目，然后在其他项目中通过 CI/CD 引用它。
 
-### 安装依赖
+**方式 B: 集成到现有项目（推荐用于单项目使用）**
 
-```bash
-pnpm install
-# 或
-npm install
-```
+将此项目的文件复制到你的现有项目中。
 
-### 配置环境变量
+### 2. 配置 GitLab CI/CD 变量
 
-复制 `.env.example` 到 `.env` 并填写配置：
+在你的 GitLab 项目中设置以下 CI/CD 变量：
 
-```bash
-cp .env.example .env
-```
+1. 进入项目的 **Settings > CI/CD > Variables**
+2. 添加以下变量：
 
-编辑 `.env` 文件：
-
-```env
-# GitLab 配置
-GITLAB_URL=https://gitlab.com
-GITLAB_TOKEN=your-gitlab-personal-access-token
-
-# Webhook 安全验证（可选）
-WEBHOOK_SECRET=your-webhook-secret
-
-# AI 配置
-AI_API_KEY=your-openai-api-key
-AI_MODEL=gpt-4o
-
-# 服务器配置
-PORT=3000
-
-# 日志级别
-LOG_LEVEL=info
-```
+| 变量名         | 说明                                                          | 是否必需 | 是否 Mask |
+| -------------- | ------------------------------------------------------------- | -------- | --------- |
+| `GITLAB_TOKEN` | GitLab Personal Access Token（需要 `api` 权限）               | ✅ 必需  | ✅ 是     |
+| `AI_API_KEY`   | OpenAI 或 DeepSeek 的 API Key                                 | ✅ 必需  | ✅ 是     |
+| `AI_MODEL`     | AI 模型名称（如 `gpt-4o` 或 `deepseek-chat`）                 | ⚪ 可选  | ❌ 否     |
+| `AI_BASE_URL`  | 自定义 AI API 地址（如 DeepSeek: `https://api.deepseek.com`） | ⚪ 可选  | ❌ 否     |
 
 #### 获取 GitLab Personal Access Token
 
 1. 登录 GitLab
 2. 进入 `Settings` > `Access Tokens`
 3. 创建新的 token，需要以下权限：
-   - `api`
-   - `read_api`
-   - `read_repository`
-   - `write_repository`
+   - `api` (必需)
 
-#### 获取 OpenAI API Key
+#### 获取 AI API Key
+
+**OpenAI:**
 
 1. 访问 [OpenAI Platform](https://platform.openai.com/)
 2. 创建 API Key
 
-## 🚀 使用
+**DeepSeek (推荐，更便宜):**
 
-### 开发模式
+1. 访问 [DeepSeek Platform](https://platform.deepseek.com/)
+2. 创建 API Key
+3. 设置 `AI_BASE_URL=https://api.deepseek.com` 和 `AI_MODEL=deepseek-chat`
+
+### 3. 配置 `.gitlab-ci.yml`
+
+项目已经包含了 `.gitlab-ci.yml` 文件。如果你是集成到现有项目，确保你的 `.gitlab-ci.yml` 包含以下内容：
+
+```yaml
+stages:
+  - review
+
+ai-code-review:
+  stage: review
+  image: node:18
+  only:
+    - merge_requests
+  before_script:
+    - npm install -g pnpm
+    - pnpm install
+  script:
+    - pnpm run review:ci
+  allow_failure: true
+```
+
+### 4. 创建 Merge Request 测试
+
+现在，创建一个新的分支并提交一些代码改动，然后创建一个 Merge Request：
 
 ```bash
-pnpm dev
-# 或
-npm run dev
+# 1. 创建新分支
+git checkout -b feature/test-ai-review
+
+# 2. 做一些代码改动
+echo "console.log('test');" >> test.js
+
+# 3. 提交并推送
+git add test.js
+git commit -m "feat: test AI code review"
+git push origin feature/test-ai-review
 ```
 
-### 生产模式
+然后在 GitLab 中创建 Merge Request，你会看到 CI/CD 流水线自动运行，AI 审查结果会自动发布到 MR 的评论中。
 
-```bash
-# 编译
-pnpm build
+## 🔍 工作流程
 
-# 启动
-pnpm start
 ```
-
-## 🔧 配置 GitLab Webhook
-
-### 1. 启动服务
-
-确保服务已经启动并可以从外网访问（可使用 ngrok 等工具）。
-
-### 2. 在 GitLab 项目中配置 Webhook
-
-1. 进入你的 GitLab 项目
-2. 导航到 `Settings` > `Webhooks`
-3. 添加新的 Webhook：
-   - **URL**: `http://your-server:3000/webhook/gitlab`
-   - **Secret token**: 与 `.env` 中的 `WEBHOOK_SECRET` 一致（可选）
-   - **Trigger**: 勾选 `Merge request events`
-   - **SSL verification**: 根据实际情况选择
-
-### 3. 测试 Webhook
-
-使用提供的测试脚本：
-
-```bash
-bash scripts/test-webhook.sh
-```
-
-或手动发送请求：
-
-```bash
-curl -X POST http://localhost:3000/webhook/gitlab \
-  -H "Content-Type: application/json" \
-  -H "X-Gitlab-Event: Merge Request Hook" \
-  -d @examples/webhook-payload.json
-```
-
-## 📝 API 接口
-
-### 健康检查
-
-```http
-GET /health
-```
-
-响应：
-
-```json
-{
-  "status": "ok",
-  "timestamp": "2025-10-21T10:00:00.000Z",
-  "service": "ai-code-review"
-}
-```
-
-### GitLab Webhook
-
-```http
-POST /webhook/gitlab
-Headers:
-  Content-Type: application/json
-  X-Gitlab-Event: Merge Request Hook
-  X-Gitlab-Token: your-webhook-secret (可选)
-```
-
-### 手动触发审查
-
-```http
-POST /review
-Content-Type: application/json
-
-{
-  "projectId": 123,
-  "mergeRequestIid": 45
-}
-```
-
-使用脚本触发：
-
-```bash
-bash scripts/manual-review.sh <project_id> <merge_request_iid>
-```
-
-示例：
-
-```bash
-bash scripts/manual-review.sh 123 45
+1. 开发者创建/更新 Merge Request
+        ↓
+2. GitLab CI/CD 自动触发 ai-code-review 作业
+        ↓
+3. 作业读取 MR 的代码变更
+        ↓
+4. AI 分析代码并检查规范
+        ↓
+5. 生成审查报告
+        ↓
+6. 自动推送评论到 GitLab MR
 ```
 
 ## 📚 代码规范
@@ -220,35 +152,12 @@ bash scripts/manual-review.sh 123 45
 
 详细规范请查看 [docs/coding-standards.md](docs/coding-standards.md)
 
-## 🔍 工作流程
-
-```
-1. GitLab MR 创建/更新
-        ↓
-2. GitLab 发送 Webhook 事件
-        ↓
-3. 服务接收并验证事件
-        ↓
-4. 获取 MR 的代码变更
-        ↓
-5. AI 分析代码并检查规范
-        ↓
-6. 生成审查报告
-        ↓
-7. 推送评论到 GitLab MR
-```
-
 ## 📂 项目结构
 
 ```
 ai-code-review/
 ├── docs/                       # 文档
 │   └── coding-standards.md    # 代码规范文档
-├── examples/                   # 示例文件
-│   └── webhook-payload.json   # Webhook 示例数据
-├── scripts/                    # 辅助脚本
-│   ├── test-webhook.sh        # 测试 Webhook
-│   └── manual-review.sh       # 手动触发审查
 ├── src/
 │   ├── checker/               # 代码检查器
 │   │   └── code-checker.ts
@@ -260,8 +169,9 @@ ai-code-review/
 │   │   ├── config.ts          # 配置管理
 │   │   ├── gitlab.ts          # GitLab API 客户端
 │   │   └── logger.ts          # 日志工具
-│   └── index.ts               # 主入口
-├── .env.example               # 环境变量示例
+│   └── ci.ts                  # CI/CD 入口
+├── .env.example               # 环境变量示例（本地开发用）
+├── .gitlab-ci.yml             # GitLab CI/CD 配置
 ├── .eslintrc.js               # ESLint 配置
 ├── .gitignore
 ├── package.json
@@ -309,7 +219,41 @@ ai-code-review/
 
 AI 还会在具体的代码行添加评论，精确指出问题位置。
 
-## 🛠️ 开发
+## 🛠️ 本地开发
+
+如果你想在本地测试或开发此工具：
+
+### 安装依赖
+
+```bash
+pnpm install
+# 或
+npm install
+```
+
+### 配置环境变量
+
+复制 `.env.example` 到 `.env` 并填写配置：
+
+```bash
+cp .env.example .env
+```
+
+编辑 `.env` 文件：
+
+```env
+# GitLab 配置
+GITLAB_URL=https://gitlab.com
+GITLAB_TOKEN=your-gitlab-personal-access-token
+
+# AI 配置
+AI_API_KEY=your-openai-api-key
+AI_MODEL=gpt-4o
+# AI_BASE_URL=https://api.deepseek.com  # 如果使用 DeepSeek
+
+# 日志级别
+LOG_LEVEL=info
+```
 
 ### 编译项目
 
@@ -323,17 +267,50 @@ pnpm build
 pnpm lint
 ```
 
-### 运行测试
-
-```bash
-pnpm test
-```
-
 ## 💡 提示
 
-1. **性能优化**: 对于大型 MR，建议调整 AI 审查的批次大小
+1. **性能优化**: 对于大型 MR，AI 审查可能需要较长时间，建议合理拆分 MR
 2. **成本控制**: AI 调用会产生费用，建议监控 API 使用情况
 3. **规范定制**: 可以根据团队需求修改 `docs/coding-standards.md`
-4. **Webhook 安全**: 生产环境强烈建议配置 `WEBHOOK_SECRET`
+4. **失败处理**: CI 配置中设置了 `allow_failure: true`，即使审查失败也不会阻塞 MR
+
+## 🔧 高级配置
+
+### 自定义审查规则
+
+编辑 `docs/coding-standards.md` 文件来自定义你的代码规范。AI 会根据这个文档来审查代码。
+
+### 调整 CI 触发条件
+
+默认情况下，AI 审查会在所有 Merge Request 上运行。你可以在 `.gitlab-ci.yml` 中调整触发条件：
+
+```yaml
+ai-code-review:
+  # 只在特定分支的 MR 上运行
+  only:
+    refs:
+      - merge_requests
+    variables:
+      - $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "main"
+```
+
+### 使用不同的 Node.js 版本
+
+在 `.gitlab-ci.yml` 中修改 `image` 字段：
+
+```yaml
+ai-code-review:
+  image: node:20 # 使用 Node.js 20
+```
+
+## 🤝 贡献
+
+欢迎提交 Issue 和 Pull Request！
+
+## 📄 许可证
+
+MIT
 
 ---
+
+**💡 提示**: 如果你觉得这个工具有用，别忘了给项目点个 Star ⭐️

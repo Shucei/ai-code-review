@@ -142,6 +142,7 @@ export class GitLabClient {
       isDeleted: diffFile.deleted_file,
       isRenamed: diffFile.renamed_file,
       changes,
+      rawDiff: diffFile.diff, // 保存原始 diff
     };
   }
 

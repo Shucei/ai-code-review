@@ -61,23 +61,34 @@ export class CodeChecker {
     logger.info("开始审查 MR", { projectId, mergeRequestIid });
 
     try {
-      // 1. 获取 MR 变更
+      // 1. 获取 MR 详细信息
+      const mrInfo = await this.gitlabClient.getMergeRequest(projectId, mergeRequestIid);
+
+      // 2. 获取 MR 变更
       const diffFiles = await this.gitlabClient.getMergeRequestChanges(projectId, mergeRequestIid);
 
       logger.info(`获取到 ${diffFiles.length} 个变更文件`);
 
-      // 2. 解析 diff
+      // 3. 解析 diff
       const changes = diffFiles.map((file) => this.gitlabClient.parseDiff(file));
 
-      // 3. AI 审查
-      const comments = await this.aiReviewer.reviewChanges(changes);
+      // 4. 构建 MR 信息
+      const mrInfoForReview = {
+        title: mrInfo.title || "未知",
+        description: mrInfo.description || undefined,
+        authorName: mrInfo.author?.name || mrInfo.author?.username || "未知",
+        webUrl: mrInfo.web_url || "",
+      };
+
+      // 5. AI 审查
+      const comments = await this.aiReviewer.reviewChanges(changes, mrInfoForReview);
 
       logger.info(`AI 审查完成，发现 ${comments.length} 个问题`);
 
-      // 4. 发布审查结果
+      // 6. 发布审查结果
       await this.publishReviewResults(projectId, mergeRequestIid, comments);
 
-      // 5. 返回结果统计
+      // 7. 返回结果统计
       const result: ReviewResult = {
         projectId,
         mergeRequestIid,

@@ -146,4 +146,5 @@ export interface DiffChange {
     lineNumber: number;
     content: string;
   }>;
+  rawDiff?: string; // 原始 diff 内容
 }
