@@ -9,9 +9,15 @@ export class CodeChecker {
   private readonly aiReviewer: AIReviewer;
   private readonly targetBranches: string[];
 
-  constructor(gitlabUrl: string, gitlabToken: string, aiApiKey: string, aiModel: string) {
+  constructor(
+    gitlabUrl: string,
+    gitlabToken: string,
+    aiApiKey: string,
+    aiModel: string,
+    baseURL: string
+  ) {
     this.gitlabClient = new GitLabClient(gitlabUrl, gitlabToken);
-    this.aiReviewer = new AIReviewer(aiApiKey, aiModel);
+    this.aiReviewer = new AIReviewer(aiApiKey, aiModel, baseURL);
     this.targetBranches = config.targetBranches || ["master", "main"];
   }
 

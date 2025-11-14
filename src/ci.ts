@@ -33,7 +33,8 @@ async function main() {
       gitlabUrl, // 使用 CI 服务器 URL
       config.gitlabToken,
       config.aiApiKey,
-      config.aiModel
+      config.aiModel,
+      config.aiBaseURL
     );
 
     const result = await codeChecker.reviewMergeRequest(Number(projectId), Number(mergeRequestIid));

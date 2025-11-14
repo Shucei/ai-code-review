@@ -132,6 +132,7 @@ export interface Config {
   port: number;
   logLevel: string;
   targetBranches?: string[]; // 需要审查的目标分支列表，默认为 ["master", "main"]
+  aiBaseURL: string;
 }
 
 export interface DiffChange {
