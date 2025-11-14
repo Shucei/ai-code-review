@@ -1,8 +1,8 @@
-// import dotenv from "dotenv";
+import dotenv from "dotenv";
 // import path from "path";
 import { Config } from "../types";
 
-// dotenv.config({ path: path.resolve(__dirname, "../../.env") });
+dotenv.config();
 
 const GITLAB_URL = process.env.CI_SERVER_URL || "https://gitlab.com";
 const GITLAB_TOKEN = process.env.GITLAB_TOKEN || "";

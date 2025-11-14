@@ -1,5 +1,5 @@
-import { CodeChecker } from "./checker/code-checker";
 import { config, validateConfig } from "./utils/config";
+import { CodeChecker } from "./checker/code-checker";
 import { logger } from "./utils/logger";
 
 async function main() {
