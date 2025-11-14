@@ -1,6 +1,6 @@
 import dotenv from "dotenv";
-// import path from "path";
 import { Config } from "../types";
+import { logger } from "./logger";
 
 dotenv.config();
 
@@ -28,7 +28,8 @@ export const config: Config = {
 
 export function validateConfig(): void {
   const errors: string[] = [];
-  console.log(process.env, config, "--------config--------------------------------");
+
+  logger.info(`配置信息: ${JSON.stringify(config)}`);
   if (!config.gitlabUrl) {
     errors.push("GITLAB_URL 是必需的");
   }

@@ -58,8 +58,6 @@ export class CodeChecker {
    * 审查 Merge Request
    */
   async reviewMergeRequest(projectId: number, mergeRequestIid: number): Promise<ReviewResult> {
-    logger.info("开始审查 MR", { projectId, mergeRequestIid });
-
     try {
       // 1. 获取 MR 详细信息
       const mrInfo = await this.gitlabClient.getMergeRequest(projectId, mergeRequestIid);
