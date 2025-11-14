@@ -27,7 +27,7 @@ export const config: Config = {
 
 export function validateConfig(): void {
   const errors: string[] = [];
-
+  console.log(process.env, config, "--------config--------------------------------");
   if (!config.gitlabUrl) {
     errors.push("GITLAB_URL 是必需的");
   }

@@ -38,8 +38,6 @@ async function main() {
       config.aiModel
     );
 
-    console.log(codeChecker, config, "--------config--------------------------------");
-
     const result = await codeChecker.reviewMergeRequest(Number(projectId), Number(mergeRequestIid));
 
     logger.info("审查成功完成。", { summary: result.summary });
