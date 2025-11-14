@@ -4,6 +4,7 @@ import { logger } from "./logger";
 
 dotenv.config();
 
+const Apinihao = 123;
 const GITLAB_URL = process.env.CI_SERVER_URL || "https://jihulab.com";
 const GITLAB_TOKEN = process.env.GITLAB_TOKEN || "";
 const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET;
@@ -30,6 +31,7 @@ export const config: Config = {
 
 export function validateConfig(): void {
   const errors: string[] = [];
+  console.log(Apinihao);
 
   logger.info(`配置信息: ${JSON.stringify(config)}`);
   if (!config.gitlabUrl) {
