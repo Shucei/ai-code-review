@@ -7,7 +7,7 @@
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
-    "review:ci": "ts-node src/ci.ts",
+    "review:ci": "ts-node -r dotenv/config src/ci.ts",
     "lint": "eslint --ext .ts src",
     "test": "jest",
     "test:webhook": "node test-webhook.js",
