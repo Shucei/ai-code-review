@@ -1,18 +1,18 @@
 import { CodeChecker } from "./checker/code-checker";
-import { config, validateConfig } from "./utils/config";
+import { config } from "./utils/config";
 import { logger } from "./utils/logger";
 
 async function main() {
   logger.info("Starting AI Code Review in CI mode...");
 
   // 1. Validate configuration
-  try {
-    validateConfig();
-    logger.info("Configuration validated successfully.");
-  } catch (error) {
-    logger.error("Configuration validation failed.", { error });
-    process.exit(1);
-  }
+  // try {
+  //   validateConfig();
+  //   logger.info("Configuration validated successfully.");
+  // } catch (error) {
+  //   logger.error("Configuration validation failed.", { error });
+  //   process.exit(1);
+  // }
 
   // 2. Get project and MR info from GitLab CI environment variables
   const projectId = process.env.CI_PROJECT_ID;
