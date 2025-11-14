@@ -72,7 +72,7 @@ export class AIReviewer {
     try {
       const response = await this.client.chat.completions.create({
         model: this.model,
-        max_tokens: 8192,
+        max_tokens: 4096, // 适当调整以适应更复杂的输出
         temperature: 0,
         messages: [
           {
@@ -103,12 +103,10 @@ export class AIReviewer {
    */
   private buildSystemPrompt(): string {
     return `你是一个专业的代码审查专家，专注于代码质量审查和 Bug 检测。
-
 你的任务是：
-1. 根据提供的代码规范，审查代码变更
-2. 识别违反规范的代码
-3. 基于描述信息和逻辑判断，分析出 diff 中疑似 Bug 的地方
-4. 对于每个问题，指出具体的文件路径、行号、违反的原则和修改建议
+1. 根据提供的代码规范，审查代码变更，识别违反规范的代码
+2. 基于描述信息和逻辑判断，尽可能发现 diff 中疑似 Bug 的地方
+3. 对于每个问题，指出具体的文件路径、行号、违反的原则和修改建议
 
 代码规范：
 ${this.codingStandards}
