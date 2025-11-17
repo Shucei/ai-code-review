@@ -272,6 +272,91 @@ pnpm lint
 3. **规范定制**: 可以根据团队需求修改 `docs/coding-standards.md`
 4. **失败处理**: CI 配置中设置了 `allow_failure: true`，即使审查失败也不会阻塞 MR
 
+## 🚀 Webhook 方式部署（推荐用于 Vercel）
+
+除了 CI/CD 方式，你还可以通过 Webhook 方式部署，这样可以在 Vercel 等无服务器平台上运行。
+
+### 部署到 Vercel
+
+#### 1. 安装 Vercel CLI（可选）
+
+```bash
+npm i -g vercel
+```
+
+#### 2. 配置环境变量
+
+在 Vercel 项目设置中添加以下环境变量：
+
+| 变量名                | 说明                                                          | 是否必需 |
+| --------------------- | ------------------------------------------------------------- | -------- |
+| `GITLAB_URL`          | GitLab 服务器地址（如 `https://jihulab.com`）                 | ✅ 必需  |
+| `GITLAB_TOKEN`        | GitLab Personal Access Token（需要 `api` 权限）               | ✅ 必需  |
+| `AI_API_KEY`          | OpenAI 或 DeepSeek 的 API Key                                 | ✅ 必需  |
+| `AI_MODEL`            | AI 模型名称（如 `gpt-4o` 或 `deepseek-chat`）                 | ✅ 必需  |
+| `AI_BASE_URL`         | 自定义 AI API 地址（如 DeepSeek: `https://api.deepseek.com`） | ✅ 必需  |
+| `WEBHOOK_SECRET`      | Webhook 密钥（可选，用于验证请求）                            | ✅ 必需  |
+| `TARGET_BRANCHES`     | 目标分支列表，逗号分隔（如 `main,master`）                    | ❌ 可选  |
+| `MAX_INLINE_COMMENTS` | 最大行内评论数（默认 10）                                     | ❌ 可选  |
+
+#### 3. 部署到 Vercel
+
+**方式 A: 通过 Vercel Dashboard**
+
+1. 访问 [Vercel Dashboard](https://vercel.com/dashboard)
+2. 点击 "Add New Project"
+3. 导入你的 Git 仓库
+4. 配置环境变量（如上）
+5. 点击 "Deploy"
+
+**方式 B: 通过 CLI**
+
+```bash
+vercel
+```
+
+#### 4. 配置 GitLab Webhook
+
+1. 进入你的 GitLab 项目
+2. 进入 **Settings > Webhooks**
+3. 添加新的 Webhook：
+   - **URL**: `https://your-project.vercel.app/api/webhook` 或 `https://your-project.vercel.app/webhook/gitlab`
+   - **Trigger**: 勾选 "Merge request events"
+   - **Secret token** (可选): 如果设置了 `WEBHOOK_SECRET`，在这里填写相同的值
+4. 点击 "Add webhook"
+
+#### 5. 测试 Webhook
+
+创建一个新的 Merge Request，系统会自动触发代码审查。
+
+### 本地开发 Webhook 服务器
+
+如果你想在本地测试 webhook 服务器：
+
+```bash
+# 安装依赖
+pnpm install
+
+# 配置环境变量（创建 .env 文件）
+cp .env.example .env
+
+# 启动开发服务器
+pnpm dev
+
+# 服务器会在 http://localhost:3000 启动
+# Webhook 端点: http://localhost:3000/webhook/gitlab
+```
+
+### Webhook vs CI/CD 方式对比
+
+| 特性       | CI/CD 方式           | Webhook 方式          |
+| ---------- | -------------------- | --------------------- |
+| 部署复杂度 | 低（无需额外部署）   | 中（需要部署服务器）  |
+| 响应速度   | 较慢（需要等待 CI）  | 快（实时响应）        |
+| 成本       | 低（使用 GitLab CI） | 中（Vercel 免费额度） |
+| 灵活性     | 低（受 CI 限制）     | 高（可自定义）        |
+| 推荐场景   | 单项目使用           | 多项目共享            |
+
 ## 🔧 高级配置
 
 ### 自定义审查规则
