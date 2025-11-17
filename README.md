@@ -34,8 +34,8 @@
 | -------------- | ------------------------------------------------------------- | -------- | --------- |
 | `GITLAB_TOKEN` | GitLab Personal Access Token（需要 `api` 权限）               | ✅ 必需  | ✅ 是     |
 | `AI_API_KEY`   | OpenAI 或 DeepSeek 的 API Key                                 | ✅ 必需  | ✅ 是     |
-| `AI_MODEL`     | AI 模型名称（如 `gpt-4o` 或 `deepseek-chat`）                 | ⚪ 可选  | ❌ 否     |
-| `AI_BASE_URL`  | 自定义 AI API 地址（如 DeepSeek: `https://api.deepseek.com`） | ⚪ 可选  | ❌ 否     |
+| `AI_MODEL`     | AI 模型名称（如 `gpt-4o` 或 `deepseek-chat`）                 | ✅ 必需  | ✅ 否     |
+| `AI_BASE_URL`  | 自定义 AI API 地址（如 DeepSeek: `https://api.deepseek.com`） | ✅ 必需  | ✅ 否     |
 
 #### 获取 GitLab Personal Access Token
 
@@ -115,7 +115,7 @@ git push origin feature/test-ai-review
 
 ## 📚 代码规范
 
-本项目基于 hcm-platform-fe 项目的编码规范进行审查，主要包括：
+本项目基于 前端 项目的编码规范进行审查，主要包括：
 
 ### 1. 命名规范
 
@@ -197,8 +197,6 @@ ai-code-review/
 ### ❌ 错误
 
 **1. src/components/UserList.tsx:15**
-
-规则: `@moka-fe/const-variable-name`
 
 常量名称必须全部大写，单词之间使用下划线分隔
 
