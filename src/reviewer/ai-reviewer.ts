@@ -332,7 +332,7 @@ ${this.codingStandards}
    */
   formatCommentsAsMarkdown(comments: CodeReviewComment[]): string {
     if (comments.length === 0) {
-      return "✅ 代码审查通过，未发现违反规范的问题。✅ ";
+      return "代码审查通过，未发现违反规范的问题。✅ ";
     }
 
     const errors = comments.filter((c) => c.severity === "error");
