@@ -4,11 +4,10 @@ import { logger } from "./logger";
 
 dotenv.config();
 
-const Apinihao = 123;
 const GITLAB_URL = process.env.CI_SERVER_URL || "https://jihulab.com";
 const GITLAB_TOKEN = process.env.GITLAB_TOKEN || "";
 const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET;
-const AI_API_KEY = process.env.AI_API_KEY || "sk-86ae4c04a8ca46c2b3794ead512877be";
+const AI_API_KEY = process.env.AI_API_KEY || "";
 const AI_MODEL = process.env.AI_MODEL || "gpt-4o";
 const PORT = parseInt(process.env.PORT || "3000", 10);
 const LOG_LEVEL = process.env.LOG_LEVEL || "info";
@@ -31,7 +30,6 @@ export const config: Config = {
 
 export function validateConfig(): void {
   const errors: string[] = [];
-  console.log(Apinihao);
 
   logger.info(`配置信息: ${JSON.stringify(config)}`);
   if (!config.gitlabUrl) {
