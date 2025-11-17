@@ -132,6 +132,8 @@ export interface Config {
   port: number;
   logLevel: string;
   targetBranches?: string[]; // 需要审查的目标分支列表，默认为 ["master", "main"]
+  aiBaseURL: string;
+  maxInlineComments?: number; // 最大行内评论数
 }
 
 export interface DiffChange {
@@ -146,4 +148,5 @@ export interface DiffChange {
     lineNumber: number;
     content: string;
   }>;
+  rawDiff?: string; // 原始 diff 内容
 }

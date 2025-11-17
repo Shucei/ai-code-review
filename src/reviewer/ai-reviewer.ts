@@ -4,6 +4,13 @@ import { join } from "path";
 import { CodeReviewComment, DiffChange } from "../types";
 import { logger } from "../utils/logger";
 
+export interface MergeRequestInfo {
+  title: string;
+  description?: string;
+  authorName: string;
+  webUrl: string;
+}
+
 export class AIReviewer {
   private readonly client: OpenAI;
   private readonly model: string;
@@ -59,7 +66,7 @@ export class AIReviewer {
     try {
       const response = await this.client.chat.completions.create({
         model: this.model,
-        max_tokens: 8192,
+        max_tokens: 4096, // 适当调整以适应更复杂的输出
         temperature: 0,
         messages: [
           {
@@ -75,7 +82,7 @@ export class AIReviewer {
 
       const content = response.choices[0]?.message?.content;
       if (content) {
-        return this.parseReviewResponse(content);
+        return this.parseReviewResponse(content, changes);
       }
 
       return [];
@@ -89,102 +96,229 @@ export class AIReviewer {
    * 构建系统提示词
    */
   private buildSystemPrompt(): string {
-    return `你是一个专业的代码审查专家，专注于 TypeScript/React 项目的代码质量审查。
-
+    return `你是一个专业的代码审查专家，专注于代码质量审查和 Bug 检测。
 你的任务是：
-1. 根据提供的代码规范文档，审查代码变更
-2. 识别违反规范的代码
-3. 提供具体的改进建议
-4. 对于每个问题，指出具体的文件名、行号和违反的规则
+1. 根据提供的代码规范，审查代码变更，识别违反规范的代码
+2. 代码可能存在潜在的bug，代码冗余、逻辑差及坏味道
+3. 对于每个问题，指出具体的文件路径、行号、违反的原则和修改建议
 
-代码规范文档：
+代码规范：
 ${this.codingStandards}
 
-审查重点：
-- 命名规范（常量、函数、组件、类型）
-- TypeScript 类型安全（禁止 any，正确的类型声明）
-- React 最佳实践（Hooks 依赖、禁止内联样式）
-- 代码质量（函数复杂度、参数数量）
-- Import 规范（顺序、扩展名、别名）
-- 代码安全（避免危险操作）
-- 代码格式（引号、注释）
-
-请以 JSON 格式返回审查结果，格式如下：
-\`\`\`json
-{
-  "comments": [
-    {
-      "file": "文件路径",
-      "line": 行号,
-      "message": "问题描述",
-      "severity": "error|warning|info",
-      "rule": "违反的规则名称",
-      "suggestion": "改进建议"
-    }
-  ]
-}
-\`\`\`
-
-重要要求：
-- 只返回真正违反规范的问题，不要过于严格
-- 优先关注错误级别的问题
-- 对于警告和建议，只标注最重要的
-- 如果代码没有问题，返回空的 comments 数组
-- 确保返回的 JSON 格式正确
-- file 字段必须使用完整的文件路径
-- line 字段必须是具体的行号
-- message 字段要简洁明了地描述问题
-- suggestion 字段要提供具体的修改建议`;
+输出要求：
+- 使用 Markdown 格式输出
+- 如果没有发现 Bug 或违反规范的问题，输出：未发现Bug
+- 如果发现问题，使用以下格式：
+  - 文件路径:行号 | 严重性 | 违反的原则 | 修改建议
+- 严重性级别必须是以下之一（必须严格按照要求输出）：
+  - "error": 严重的错误，如潜在的 bug、安全漏洞、会导致程序崩溃的问题、逻辑错误
+  - "warning": 警告，如代码风格问题、性能问题、可维护性问题、可能的改进点
+  - "info": 建议，如代码优化建议、可读性改进建议、最佳实践建议
+- 每行一个问题，行号必须是具体的数字
+- 文件路径必须完整
+- 违反的问题要简洁明了
+- 修改建议要具体可操作`;
   }
 
   /**
    * 构建审查提示词
    */
   private buildReviewPrompt(changes: DiffChange[]): string {
-    const fileChanges = changes
+    // 构建代码差异信息
+    const diffInfo = changes
       .map((change) => {
-        const addedLines = change.changes
-          .filter((c) => c.type === "add")
-          .map((c) => `${c.lineNumber}: ${c.content}`)
-          .join("\n");
-
-        return `
-文件: ${change.newPath}
-${change.isNew ? "(新文件)" : ""}
-${change.isRenamed ? `(重命名自: ${change.oldPath})` : ""}
-
-新增/修改的代码:
-\`\`\`typescript
-${addedLines}
-\`\`\`
-`;
+        return {
+          new_path: change.newPath,
+          diff: this.formatDiff(change),
+        };
       })
-      .join("\n---\n");
+      .filter((item) => item.diff); // 过滤掉空的 diff
 
-    return `请审查以下代码变更，识别违反代码规范的问题：
+    // 构建提示词
+    const rule = this.codingStandards;
 
-${fileChanges}
+    const diffText = diffInfo
+      .map((change) => `文件: ${change.new_path}\n差异:\n${change.diff}`)
+      .join("\n\n");
 
-请严格按照 JSON 格式返回审查结果。`;
+    return `请检查以下代码差异（diff），按照给你提供的任务要求进行检查并输出结果：
+    ${rule}
+    输出格式：
+      - 文件路径:行号 | 严重性 | 违反的原则 | 修改建议
+    严重性级别说明（必须选择其中一个）：
+      - "error": 严重的错误，如潜在的 bug、安全漏洞、会导致程序崩溃的问题
+      - "warning": 警告，如代码风格问题、性能问题、可维护性问题
+      - "info": 建议，如代码优化建议、可读性改进建议
+    代码信息：
+         代码差异：${diffText}
+         请按照上述要求进行检查并输出结果。`;
   }
 
   /**
-   * 解析 AI 返回的审查结果
+   * 格式化 diff 内容
    */
-  private parseReviewResponse(response: string): CodeReviewComment[] {
+  private formatDiff(change: DiffChange): string {
+    if (change.isDeleted) {
+      return "";
+    }
+
+    // 优先使用原始 diff，如果没有则构建
+    if (change.rawDiff) {
+      return change.rawDiff;
+    }
+
+    // 构建完整的 diff 内容，包含上下文
+    const lines: string[] = [];
+
+    // 添加文件信息
+    if (change.isNew) {
+      lines.push(`--- /dev/null`);
+      lines.push(`+++ ${change.newPath}`);
+    } else if (change.isRenamed) {
+      lines.push(`--- ${change.oldPath}`);
+      lines.push(`+++ ${change.newPath}`);
+    } else {
+      lines.push(`--- ${change.oldPath}`);
+      lines.push(`+++ ${change.newPath}`);
+    }
+
+    // 添加变更内容
+    let currentLine = 1;
+    let inHunk = false;
+
+    change.changes.forEach((c) => {
+      if (!inHunk) {
+        // 开始新的 hunk
+        lines.push(`@@ -${currentLine},0 +${currentLine},0 @@`);
+        inHunk = true;
+      }
+
+      if (c.type === "add") {
+        lines.push(`+${c.content}`);
+        currentLine++;
+      } else if (c.type === "delete") {
+        lines.push(`-${c.content}`);
+      } else {
+        lines.push(` ${c.content}`);
+        currentLine++;
+      }
+    });
+
+    return lines.join("\n");
+  }
+
+  /**
+   * 解析 AI 返回的审查结果（Markdown 格式）
+   */
+  private parseReviewResponse(response: string, changes: DiffChange[]): CodeReviewComment[] {
     try {
-      // 尝试提取 JSON 代码块
-      const jsonMatch = response.match(/```json\s*\n([\s\S]*?)\n```/);
-      const jsonStr = jsonMatch ? jsonMatch[1] : response;
-
-      const result = JSON.parse(jsonStr);
-
-      if (!result.comments || !Array.isArray(result.comments)) {
-        logger.warn("AI 返回的结果格式不正确", { response });
+      // 检查是否没有发现问题
+      if (response.includes("未发现Bug") || response.includes("未发现") || response.trim() === "") {
         return [];
       }
 
-      return result.comments;
+      const comments: CodeReviewComment[] = [];
+      const lines = response.split("\n");
+
+      // 创建文件路径映射，用于根据行号查找文件
+      const fileMap = new Map<string, DiffChange>();
+      changes.forEach((change) => {
+        fileMap.set(change.newPath, change);
+      });
+
+      // 解析 Markdown 列表格式：- 文件路径:行号 | 严重性 | 违反的原则 | 修改建议
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed.startsWith("-") && !trimmed.startsWith("*")) {
+          continue;
+        }
+
+        // 移除开头的 "- " 或 "-" 或 "* " 或 "*"
+        const content = trimmed.replace(/^[-*]\s*/, "");
+
+        // 解析格式：文件路径:行号 | 严重性 | 违反的原则 | 修改建议
+        const parts = content.split("|").map((p) => p.trim());
+
+        if (parts.length < 3) {
+          // 兼容旧格式：文件路径:行号 | 违反的原则 | 修改建议（没有严重性）
+          if (parts.length >= 2) {
+            // 尝试解析旧格式
+            const linePart = parts[0];
+            const colonMatch = linePart.match(/^(.+?):(\d+)$/);
+            if (colonMatch) {
+              const filePath = colonMatch[1].trim();
+              const lineNumber = parseInt(colonMatch[2], 10);
+              const rule = parts[1] || "代码规范";
+              const suggestion = parts[2] || "";
+
+              if (filePath && lineNumber > 0 && !isNaN(lineNumber)) {
+                comments.push({
+                  file: filePath,
+                  line: lineNumber,
+                  message: `违反原则: ${rule}`,
+                  severity: "error", // 旧格式默认为 error
+                  rule: rule,
+                  suggestion: suggestion,
+                });
+              }
+            }
+          }
+          continue;
+        }
+
+        let filePath = "";
+        let lineNumber = 0;
+        const severityRaw = parts[1]?.toLowerCase().trim() || "error";
+        const rule = parts[2] || "代码规范";
+        const suggestion = parts[3] || "";
+
+        // 验证严重性级别
+        const severity = ["error", "warning", "info"].includes(severityRaw) ? severityRaw : "error";
+
+        // 解析行号部分
+        const linePart = parts[0];
+
+        // 尝试多种格式解析
+        // 格式1: 文件路径:行号
+        const colonMatch = linePart.match(/^(.+?):(\d+)$/);
+        if (colonMatch) {
+          filePath = colonMatch[1].trim();
+          lineNumber = parseInt(colonMatch[2], 10);
+        } else {
+          // 格式2: 只有行号
+          const numberMatch = linePart.match(/(\d+)/);
+          if (numberMatch) {
+            lineNumber = parseInt(numberMatch[1], 10);
+
+            // 尝试从所有变更文件中找到包含该行号的文件
+            for (const [path, change] of fileMap.entries()) {
+              const hasLine = change.changes.some((c) => c.lineNumber === lineNumber);
+              if (hasLine) {
+                filePath = path;
+                break;
+              }
+            }
+
+            // 如果还是找不到，使用第一个文件
+            if (!filePath && changes.length > 0) {
+              filePath = changes[0].newPath;
+            }
+          }
+        }
+
+        if (filePath && lineNumber > 0 && !isNaN(lineNumber)) {
+          comments.push({
+            file: filePath,
+            line: lineNumber,
+            message: `违反原则: ${rule}`,
+            severity: severity as "error" | "warning" | "info",
+            rule: rule,
+            suggestion: suggestion,
+          });
+        }
+      }
+
+      return comments;
     } catch (error) {
       logger.error("解析 AI 审查结果失败", { error, response });
       return [];
@@ -216,7 +350,7 @@ ${fileChanges}
    */
   formatCommentsAsMarkdown(comments: CodeReviewComment[]): string {
     if (comments.length === 0) {
-      return "✅ 代码审查通过，未发现违反规范的问题。";
+      return "代码审查通过，未发现违反规范的问题。✅ ";
     }
 
     const errors = comments.filter((c) => c.severity === "error");

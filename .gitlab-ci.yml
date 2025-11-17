@@ -1,0 +1,27 @@
+stages:
+  - review
+
+# AI Code Review Job - runs on merge request events
+ai-code-review:
+  stage: review
+  image: node:18
+  only:
+    - merge_requests
+  before_script:
+    # Install pnpm
+    - npm install -g pnpm
+    # Install dependencies
+    - pnpm install
+  script:
+    # Run the AI code review
+    - pnpm run review:ci
+  allow_failure: true
+  variables:
+    # These will be read from GitLab CI/CD settings
+    # Make sure to set these in your GitLab project:
+    # Settings > CI/CD > Variables
+    # - GITLAB_TOKEN (your GitLab personal access token)
+    # - AI_API_KEY (your OpenAI/DeepSeek API key)
+    # - AI_MODEL (optional, defaults to gpt-4)
+    # - AI_BASE_URL (optional, for custom AI endpoints like DeepSeek)
+    GIT_STRATEGY: clone
