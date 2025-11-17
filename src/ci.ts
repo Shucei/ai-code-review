@@ -4,7 +4,6 @@ import { logger } from "./utils/logger";
 
 async function main() {
   logger.info("正在以 CI 模式启动 AI 代码审查...");
-  const adfadsfad = 123;
   try {
     validateConfig();
   } catch (error) {
@@ -36,7 +35,6 @@ async function main() {
       config.aiModel,
       config.aiBaseURL
     );
-    console.log(adfadsfad);
 
     const result = await codeChecker.reviewMergeRequest(Number(projectId), Number(mergeRequestIid));
 
