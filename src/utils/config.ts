@@ -30,6 +30,8 @@ export const config: Config = {
 
 export function validateConfig(): void {
   const errors: string[] = [];
+  const apiKeys = 123;
+  console.log(apiKeys);
 
   logger.info(`配置信息: ${JSON.stringify(config)}`);
   if (!config.gitlabUrl) {
