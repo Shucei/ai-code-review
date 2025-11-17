@@ -119,20 +119,31 @@ export class CodeChecker {
     const summaryComment = this.aiReviewer.formatCommentsAsMarkdown(comments);
     await this.gitlabClient.addMergeRequestComment(projectId, mergeRequestIid, summaryComment);
 
-    // 2. 添加行内评论（只针对错误级别）
-    const errorComments = comments.filter((c) => c.severity === "error").slice(0, 10); // 最多添加 10 条行内评论，避免刷屏
+    // 2. 添加行内评论（按严重性优先级：错误 > 警告 > 建议）
+    const maxInlineComments = config.maxInlineComments ?? 10;
+    const inlineComments = [
+      ...comments.filter((c) => c.severity === "error"),
+      ...comments.filter((c) => c.severity === "warning"),
+      ...comments.filter((c) => c.severity === "info"),
+    ].slice(0, maxInlineComments);
 
-    if (errorComments.length > 0) {
+    if (inlineComments.length > 0) {
       await this.gitlabClient.addBatchComments(
         projectId,
         mergeRequestIid,
-        errorComments.map((c) => ({
-          file: c.file,
-          line: c.line,
-          message: `❌ **${c.rule || "代码规范"}**\n\n${c.message}\n\n${
-            c.suggestion ? `💡 **建议**: ${c.suggestion}` : ""
-          }`,
-        }))
+        inlineComments.map((c) => {
+          const severityIcon =
+            c.severity === "error" ? "❌" : c.severity === "warning" ? "⚠️" : "ℹ️";
+          const severityText =
+            c.severity === "error" ? "错误" : c.severity === "warning" ? "警告" : "建议";
+          return {
+            file: c.file,
+            line: c.line,
+            message: `${severityIcon} **${severityText} - ${c.rule || "代码规范"}**\n\n${
+              c.message
+            }\n\n${c.suggestion ? `💡 **建议**: ${c.suggestion}` : ""}`,
+          };
+        })
       );
     }
 
@@ -140,7 +151,10 @@ export class CodeChecker {
       projectId,
       mergeRequestIid,
       totalComments: comments.length,
-      inlineComments: errorComments.length,
+      inlineComments: inlineComments.length,
+      errors: comments.filter((c) => c.severity === "error").length,
+      warnings: comments.filter((c) => c.severity === "warning").length,
+      infos: comments.filter((c) => c.severity === "info").length,
     });
   }
 }

@@ -109,7 +109,11 @@ ${this.codingStandards}
 - 使用 Markdown 格式输出
 - 如果没有发现 Bug 或违反规范的问题，输出：未发现Bug
 - 如果发现问题，使用以下格式：
-  - 不符合的代码行号 | 违反的原则 | 修改建议
+  - 文件路径:行号 | 严重性 | 违反的原则 | 修改建议
+- 严重性级别必须是以下之一（必须严格按照要求输出）：
+  - "error": 严重的错误，如潜在的 bug、安全漏洞、会导致程序崩溃的问题、逻辑错误
+  - "warning": 警告，如代码风格问题、性能问题、可维护性问题、可能的改进点
+  - "info": 建议，如代码优化建议、可读性改进建议、最佳实践建议
 - 每行一个问题，行号必须是具体的数字
 - 文件路径必须完整
 - 违反的问题要简洁明了
@@ -140,10 +144,14 @@ ${this.codingStandards}
     return `请检查以下代码差异（diff），按照给你提供的任务要求进行检查并输出结果：
     ${rule}
     输出格式：
-      - 不符合的代码行号 | 违反的原则 | 修改建议
+      - 文件路径:行号 | 严重性 | 违反的原则 | 修改建议
+    严重性级别说明（必须选择其中一个）：
+      - "error": 严重的错误，如潜在的 bug、安全漏洞、会导致程序崩溃的问题
+      - "warning": 警告，如代码风格问题、性能问题、可维护性问题
+      - "info": 建议，如代码优化建议、可读性改进建议
     代码信息：
-        代码差异：${diffText}
-        请按照上述要求进行检查并输出结果。`;
+         代码差异：${diffText}
+         请按照上述要求进行检查并输出结果。`;
   }
 
   /**
@@ -218,8 +226,7 @@ ${this.codingStandards}
         fileMap.set(change.newPath, change);
       });
 
-      // 解析 Markdown 列表格式：- 行号 | 违反的原则 | 修改建议
-      // 或者：- 文件路径:行号 | 违反的原则 | 修改建议
+      // 解析 Markdown 列表格式：- 文件路径:行号 | 严重性 | 违反的原则 | 修改建议
       for (const line of lines) {
         const trimmed = line.trim();
         if (!trimmed.startsWith("-") && !trimmed.startsWith("*")) {
@@ -229,18 +236,44 @@ ${this.codingStandards}
         // 移除开头的 "- " 或 "-" 或 "* " 或 "*"
         const content = trimmed.replace(/^[-*]\s*/, "");
 
-        // 解析格式：行号 | 违反的原则 | 修改建议
-        // 或者：文件路径:行号 | 违反的原则 | 修改建议
+        // 解析格式：文件路径:行号 | 严重性 | 违反的原则 | 修改建议
         const parts = content.split("|").map((p) => p.trim());
 
-        if (parts.length < 2) {
+        if (parts.length < 3) {
+          // 兼容旧格式：文件路径:行号 | 违反的原则 | 修改建议（没有严重性）
+          if (parts.length >= 2) {
+            // 尝试解析旧格式
+            const linePart = parts[0];
+            const colonMatch = linePart.match(/^(.+?):(\d+)$/);
+            if (colonMatch) {
+              const filePath = colonMatch[1].trim();
+              const lineNumber = parseInt(colonMatch[2], 10);
+              const rule = parts[1] || "代码规范";
+              const suggestion = parts[2] || "";
+
+              if (filePath && lineNumber > 0 && !isNaN(lineNumber)) {
+                comments.push({
+                  file: filePath,
+                  line: lineNumber,
+                  message: `违反原则: ${rule}`,
+                  severity: "error", // 旧格式默认为 error
+                  rule: rule,
+                  suggestion: suggestion,
+                });
+              }
+            }
+          }
           continue;
         }
 
         let filePath = "";
         let lineNumber = 0;
-        const rule = parts[1] || "代码规范";
-        const suggestion = parts[2] || "";
+        const severityRaw = parts[1]?.toLowerCase().trim() || "error";
+        const rule = parts[2] || "代码规范";
+        const suggestion = parts[3] || "";
+
+        // 验证严重性级别
+        const severity = ["error", "warning", "info"].includes(severityRaw) ? severityRaw : "error";
 
         // 解析行号部分
         const linePart = parts[0];
@@ -278,7 +311,7 @@ ${this.codingStandards}
             file: filePath,
             line: lineNumber,
             message: `违反原则: ${rule}`,
-            severity: "error", // 默认设为 error，因为这是 Bug 检测
+            severity: severity as "error" | "warning" | "info",
             rule: rule,
             suggestion: suggestion,
           });

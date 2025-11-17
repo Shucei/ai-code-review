@@ -15,6 +15,7 @@ const TARGET_BRANCHES = process.env.TARGET_BRANCHES
   ? process.env.TARGET_BRANCHES.split(",").map((b) => b.trim())
   : ["master", "main"];
 const AI_BASE_URL = process.env.AI_BASE_URL || "https://api.deepseek.com";
+const MAX_INLINE_COMMENTS = parseInt(process.env.MAX_INLINE_COMMENTS || "10", 10);
 
 export const config: Config = {
   gitlabUrl: GITLAB_URL,
@@ -26,12 +27,11 @@ export const config: Config = {
   logLevel: LOG_LEVEL,
   targetBranches: TARGET_BRANCHES,
   aiBaseURL: AI_BASE_URL,
+  maxInlineComments: MAX_INLINE_COMMENTS,
 };
 
 export function validateConfig(): void {
   const errors: string[] = [];
-  const apiKeys = 123;
-  console.log(apiKeys);
 
   logger.info(`配置信息: ${JSON.stringify(config)}`);
   if (!config.gitlabUrl) {
