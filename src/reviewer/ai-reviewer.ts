@@ -31,10 +31,7 @@ export class AIReviewer {
   /**
    * 审查代码变更
    */
-  async reviewChanges(
-    changes: DiffChange[],
-    mrInfo?: MergeRequestInfo
-  ): Promise<CodeReviewComment[]> {
+  async reviewChanges(changes: DiffChange[]): Promise<CodeReviewComment[]> {
     const allComments: CodeReviewComment[] = [];
 
     // 过滤掉删除的文件和非代码文件
@@ -53,7 +50,7 @@ export class AIReviewer {
     const BATCH_SIZE = 5;
     for (let i = 0; i < filesToReview.length; i += BATCH_SIZE) {
       const batch = filesToReview.slice(i, i + BATCH_SIZE);
-      const batchComments = await this.reviewBatch(batch, mrInfo);
+      const batchComments = await this.reviewBatch(batch);
       allComments.push(...batchComments);
     }
 
@@ -63,11 +60,8 @@ export class AIReviewer {
   /**
    * 批量审查文件
    */
-  private async reviewBatch(
-    changes: DiffChange[],
-    mrInfo?: MergeRequestInfo
-  ): Promise<CodeReviewComment[]> {
-    const prompt = this.buildReviewPrompt(changes, mrInfo);
+  private async reviewBatch(changes: DiffChange[]): Promise<CodeReviewComment[]> {
+    const prompt = this.buildReviewPrompt(changes);
 
     try {
       const response = await this.client.chat.completions.create({
@@ -125,7 +119,7 @@ ${this.codingStandards}
   /**
    * 构建审查提示词
    */
-  private buildReviewPrompt(changes: DiffChange[], mrInfo?: MergeRequestInfo): string {
+  private buildReviewPrompt(changes: DiffChange[]): string {
     // 构建代码差异信息
     const diffInfo = changes
       .map((change) => {
@@ -138,25 +132,16 @@ ${this.codingStandards}
 
     // 构建提示词
     const rule = this.codingStandards;
-    const title = mrInfo?.title || "未知";
-    const description = mrInfo?.description || "无描述";
-    const author_name = mrInfo?.authorName || "未知";
-    const web_url = mrInfo?.webUrl || "";
 
     const diffText = diffInfo
       .map((change) => `文件: ${change.new_path}\n差异:\n${change.diff}`)
       .join("\n\n");
 
-    return `请检查以下代码差异（diff），确保其符合以下原则：
+    return `请检查以下代码差异（diff），按照给你提供的任务要求进行检查并输出结果：
     ${rule}
-    要求判断分析出diff中疑似Bug的地方，用Markdown格式输出（若没有可输出：未发现Bug）：
     输出格式：
       - 不符合的代码行号 | 违反的原则 | 修改建议
     代码信息：
-        合并请求标题：${title}
-        描述: ${description || "无描述"}
-        提交人: ${author_name}
-        查看合并请求: ${web_url}
         代码差异：${diffText}
         请按照上述要求进行检查并输出结果。`;
   }

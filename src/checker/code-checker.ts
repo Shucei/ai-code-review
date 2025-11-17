@@ -76,16 +76,8 @@ export class CodeChecker {
       // 3. 解析 diff
       const changes = diffFiles.map((file) => this.gitlabClient.parseDiff(file));
 
-      // 4. 构建 MR 信息
-      const mrInfoForReview = {
-        title: mrInfo.title || "未知",
-        description: mrInfo.description || undefined,
-        authorName: mrInfo.author?.name || mrInfo.author?.username || "未知",
-        webUrl: mrInfo.web_url || "",
-      };
-
-      // 5. AI 审查
-      const comments = await this.aiReviewer.reviewChanges(changes, mrInfoForReview);
+      // 4. AI 审查
+      const comments = await this.aiReviewer.reviewChanges(changes);
 
       logger.info(`AI 审查完成，发现 ${comments.length} 个问题`);
 
